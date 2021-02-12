@@ -8,23 +8,28 @@ import (
 	"github.com/tealeg/xlsx"
 	"gorm.io/gorm"
 	"io/ioutil"
-	"math"
 	"net/http"
-	"sync"
+	"strconv"
 )
 
-var tasks = map[string] *Task{}
-var tasksLock = sync.Mutex{}
+type Service struct {
+	repo  *models.Repository
+	tasks map[string]*Task
+}
+
+func NewService(repo *models.Repository) *Service {
+	return &Service{repo: repo, tasks: map[string]*Task{}}
+}
 
 type Task struct {
-	TaskId string `json:"task_id"`
-	Status string `json:"status"`
-	StatusCode int `json:"status_code"`
-	SellerId uint `json:"-"`
+	TaskId     string `json:"task_id"`
+	Status     string `json:"status"`
+	StatusCode int    `json:"status_code"`
+	SellerId   uint   `json:"-"`
 
-	Info struct{
-		Created int	`json:"created,omitempty"`
-		Updated int	`json:"updated,omitempty"`
+	Info struct {
+		Created int `json:"created,omitempty"`
+		Updated int `json:"updated,omitempty"`
 		Deleted int `json:"deleted,omitempty"`
 		Errors  int `json:"errors,omitempty"`
 	} `json:"info,omitempty"`
@@ -35,34 +40,35 @@ func (t *Task) SetStatus(status string, code int) {
 	t.StatusCode = code
 }
 
-func GetTask(id string) (*Task, bool) {
-	task, ok := tasks[id]
+func (s *Service) GetTask(id string) (*Task, bool) {
+	task, ok := s.tasks[id]
 	return task, ok
 }
 
-func CreateTask(sellerId uint) *Task {
+func (s *Service) createTask(sellerId uint) *Task {
 	taskUUID, _ := uuid.DefaultGenerator.NewV4()
 	id := taskUUID.String()
 	task := &Task{
 		TaskId:     id,
 		Status:     "Created",
 		StatusCode: http.StatusCreated,
-		SellerId: sellerId,
+		SellerId:   sellerId,
 	}
-	tasks[id] = task
+	s.tasks[id] = task
 	return task
 }
 
-func StartUploadingTask(sellerId uint, xlsxURL string) (task *Task, err error) {
-	req, err := http.Get(xlsxURL)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
+func (s *Service) StartUploadingTask(sellerId uint, xlsxURL string) (task *Task, err error) {
 
-	task = CreateTask(sellerId)
+	task = s.createTask(sellerId)
 
 	go func() {
+		req, err := http.Get(xlsxURL)
+		if err != nil {
+			log.Error(err)
+			task.SetStatus(fmt.Sprintf("Error occured: %s", err), http.StatusBadRequest)
+		}
+
 		defer req.Body.Close()
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
@@ -75,25 +81,25 @@ func StartUploadingTask(sellerId uint, xlsxURL string) (task *Task, err error) {
 			return
 		}
 		task.SetStatus("Parsing", http.StatusProcessing)
-		ParsingTask(xlsxFile, task)
+		ParsingTask(xlsxFile, task, s.repo)
 	}()
 
 	return task, nil
 }
 
 type RowData struct {
-	Columns struct{
-		OfferId int	`xlsx:"0"`
-		Name string		`xlsx:"1"`
-		Price float64	`xlsx:"2"`
-		Quantity int	`xlsx:"3"`
-		Available bool	`xlsx:"4"`
+	Columns struct {
+		OfferId   uint64 `xlsx:"0"`
+		Name      string `xlsx:"1"`
+		Price     int64  `xlsx:"2"`
+		Quantity  int    `xlsx:"3"`
+		Available bool   `xlsx:"4"`
 	}
-	ok bool
+	ok  bool
 	err error
 }
 
-func (r *RowData) UpdateColumns(offerId int, name string, price float64, quantity int, available bool) {
+func (r *RowData) UpdateColumns(offerId uint64, name string, price int64, quantity int, available bool) {
 	r.Columns.OfferId = offerId
 	r.Columns.Name = name
 	r.Columns.Price = price
@@ -101,7 +107,7 @@ func (r *RowData) UpdateColumns(offerId int, name string, price float64, quantit
 	r.Columns.Available = available
 }
 
-func ParsingTask(wb *xlsx.File, task *Task) {
+func ParsingTask(wb *xlsx.File, task *Task, repo *models.Repository) {
 	sh := wb.Sheets[0]
 
 	rows := sh.Rows
@@ -113,92 +119,112 @@ func ParsingTask(wb *xlsx.File, task *Task) {
 	parsedRows := make(chan RowData, len(rows))
 	defer close(parsedRows)
 
-	go checkAndUploadRows(parsedRows, task)
+	go checkAndUploadRows(parsedRows, task, repo)
 	parsingRows(parsedRows, rows)
 }
 
-func parsingRows(parsedRows chan<- RowData, rows []*xlsx.Row)  {
+func parsingRows(parsedRows chan<- RowData, rows []*xlsx.Row) {
 	for _, row := range rows {
 		rowData := RowData{}
+		rowData.ok = true
 		cells := row.Cells
 		if len(cells) == 5 {
-			offerId, err := cells[0].Int()
-			name := cells[1].String()
-			price, err := cells[2].Float()
-			quantity, err := cells[3].Int()
-			available := cells[4].Bool()
-
+			offerIdStr, err := cells[0].GeneralNumericWithoutScientific()
 			if err != nil {
 				rowData.err = err
 				rowData.ok = false
-			} else {
-				rowData.UpdateColumns(offerId, name, price, quantity, available)
-				rowData.ok = true
-				if rowData.Columns.OfferId < 0 || rowData.Columns.Price < 0 || rowData.Columns.Quantity < 0 || rowData.Columns.Price == math.NaN() {
-					rowData.ok = false
-				}
 			}
+
+			offerId, err := strconv.ParseUint(offerIdStr, 10, 64)
+			if err != nil {
+				rowData.err = err
+				rowData.ok = false
+			}
+
+			name := cells[1].String()
+
+			priceStr, err := cells[2].GeneralNumericWithoutScientific()
+			if err != nil {
+				rowData.err = err
+				rowData.ok = false
+			}
+
+			price, err := strconv.ParseInt(priceStr, 10, 64)
+			if err != nil {
+				rowData.err = err
+				rowData.ok = false
+			}
+
+			quantity, err := cells[3].Int()
+			if err != nil {
+				rowData.err = err
+				rowData.ok = false
+			}
+
+			available := cells[4].Bool()
+
+			if rowData.ok {
+				rowData.UpdateColumns(offerId, name, price, quantity, available)
+			}
+
+			if rowData.Columns.Price < 0 || rowData.Columns.Quantity < 0 {
+				rowData.ok = false
+			}
+
+		} else {
+			rowData.ok = false
 		}
-		//if err != nil {
-		//	rowData.err = err
-		//	rowData.ok = false
-		//} else {
-		//	rowData.ok = true
-		//}
-		//if rowData.Columns.OfferId < 0 || rowData.Columns.Price < 0 || rowData.Columns.Quantity < 0 {
-		//	rowData.ok = false
-		//}
+
 		parsedRows <- rowData
 	}
 
 }
 
-func checkAndUploadRows(parsedRows <-chan RowData, task *Task) {
+func checkAndUploadRows(parsedRows <-chan RowData, task *Task, repo *models.Repository) {
 	sellerId := task.SellerId
-	updated := map[uint] int {}
 	for parsedRow := range parsedRows {
 		if !parsedRow.ok {
 			task.Info.Errors++
-			log.Info(parsedRow.err)
+			if parsedRow.err != nil {
+				log.Debug(parsedRow.err)
+			}
 			continue
 		}
 
 		offerId := parsedRow.Columns.OfferId
-		offer, err := models.FindOffer(uint(offerId), sellerId)
+		offer, err := repo.FindOffer(offerId, uint64(sellerId))
 		if err == gorm.ErrRecordNotFound {
 			if parsedRow.Columns.Available == false {
 				continue
 			}
-			offer, err = models.NewOffer(uint(offerId), sellerId, parsedRow.Columns.Name, parsedRow.Columns.Price, parsedRow.Columns.Quantity, parsedRow.Columns.Available)
+			offer, err = repo.NewOffer(offerId, uint64(sellerId), parsedRow.Columns.Name, parsedRow.Columns.Price, parsedRow.Columns.Quantity, parsedRow.Columns.Available)
 			if err != nil {
 				task.Info.Errors++
-				log.Info(err)
+				log.Debug(err)
 				continue
 			}
 			task.Info.Created++
-		} else if err == nil && offer != nil{
+		} else if err == nil && offer != nil {
 			if parsedRow.Columns.Available == false {
-				offer.Delete()
+				repo.Delete(offer)
 				task.Info.Deleted++
 				continue
 			}
 
-			err := offer.UpdateColumns(parsedRow.Columns.Name, parsedRow.Columns.Price, parsedRow.Columns.Quantity, parsedRow.Columns.Available)
+			err := repo.UpdateColumns(offer, parsedRow.Columns.Name, parsedRow.Columns.Price, parsedRow.Columns.Quantity, parsedRow.Columns.Available)
 			if err != nil {
 				task.Info.Errors++
-				log.Info(err)
+				log.Debug(err)
 				continue
 			}
 			task.Info.Updated++
-			updated[offer.OfferId]++
 		} else {
 			task.Info.Errors++
 			if err != nil {
-				log.Info(err)
+				log.Debug(err)
 			}
 		}
 	}
 	task.SetStatus("Completed", http.StatusOK)
 
-	fmt.Printf("Overupdates: %v \n", updated)
 }

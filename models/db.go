@@ -7,16 +7,22 @@ import (
 	"os"
 )
 
-var db *gorm.DB
+type Repository struct {
+	db *gorm.DB
+}
 
-func init() {
+func NewRepository(db *gorm.DB) *Repository {
+	return &Repository{db: db}
+}
+
+func NewRepositoryFromEnvironments() *Repository {
 	username := os.Getenv("db_user")
 	password := os.Getenv("db_pass")
 	dbName := os.Getenv("db_name")
 	dbHost := os.Getenv("db_host")
 
 	if username == "" || password == "" || dbName == "" || dbHost == "" {
-		return
+		return nil
 	}
 	dbUri := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s", dbHost, username, dbName, password) //Создать строку подключения
 	//fmt.Println(dbUri)
@@ -27,14 +33,16 @@ func init() {
 	}
 
 	fmt.Println("Connected to database")
-	db = conn
+	db := conn
 	db.AutoMigrate(&Offer{})
+
+	return &Repository{db: db}
 }
 
-func GetDB() *gorm.DB {
-	return db
+func (r *Repository) GetDB() *gorm.DB {
+	return r.db
 }
 
-func SetDB(gdb *gorm.DB)  {
-	db = gdb
+func (r *Repository) SetDB(gdb *gorm.DB) {
+	r.db = gdb
 }

@@ -10,7 +10,16 @@ import (
 	"strconv"
 )
 
-func NewTask(ctx echo.Context) error {
+type Handler struct {
+	Service *services.Service
+	Repo    *models.Repository
+}
+
+func NewHandler(service *services.Service, repo *models.Repository) *Handler {
+	return &Handler{Service: service, Repo: repo}
+}
+
+func (h *Handler) NewTask(ctx echo.Context) error {
 	sellerId := ctx.FormValue("seller_id")
 	url := ctx.FormValue("url")
 	id, err := strconv.ParseUint(sellerId, 10, 64)
@@ -19,7 +28,7 @@ func NewTask(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, other.GetJsonStatusMessage(http.StatusBadRequest, err.Error()))
 	}
 
-	task, err := services.StartUploadingTask(uint(id), url)
+	task, err := h.Service.StartUploadingTask(uint(id), url)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, other.GetJsonStatusMessage(http.StatusBadRequest, err.Error()))
 	}
@@ -27,14 +36,14 @@ func NewTask(ctx echo.Context) error {
 	return ctx.JSON(task.StatusCode, task)
 }
 
-func GetTask(ctx echo.Context) error {
+func (h *Handler) GetTask(ctx echo.Context) error {
 	taskId := ctx.QueryParam("task_id")
 	if taskId == "" {
 		return ctx.JSON(http.StatusBadRequest,
 			other.GetJsonStatusMessage(http.StatusBadRequest, "Не задан параметр task_id"))
 	}
 
-	task, ok := services.GetTask(taskId)
+	task, ok := h.Service.GetTask(taskId)
 	if !ok {
 		return ctx.JSON(http.StatusNotFound,
 			other.GetJsonStatusMessage(http.StatusNotFound, "Не найдено задание с таким id"))
@@ -42,7 +51,7 @@ func GetTask(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, task)
 }
 
-func GetOffers(ctx echo.Context) error {
+func (h *Handler) GetOffers(ctx echo.Context) error {
 
 	sellerIdStr := ctx.QueryParam("seller_id")
 	offerIdStr := ctx.QueryParam("offer_id")
@@ -65,7 +74,7 @@ func GetOffers(ctx echo.Context) error {
 	}
 
 	if offerIdStr != "" {
-		offerId, err := strconv.ParseUint(sellerIdStr, 10, 64)
+		offerId, err := strconv.ParseUint(offerIdStr, 10, 64)
 		if err != nil {
 			return ctx.JSON(http.StatusBadRequest,
 				other.GetJsonStatusMessage(http.StatusBadRequest, fmt.Sprintf("Недопустимое значение для параметра %s, ожидалось %T", "offer_id", offerId)))
@@ -76,17 +85,15 @@ func GetOffers(ctx echo.Context) error {
 		args["name"] = name
 	}
 
-	offers, err := models.FindOffersByConditions(args)
+	offers, err := h.Repo.FindOffersByConditions(args)
 	if err != nil {
 		return ctx.JSON(http.StatusNotFound, other.GetJsonStatusMessage(http.StatusNotFound, err.Error()))
 	}
 
 	result := struct {
-		Count int `json:"count"`
+		Count int            `json:"count"`
 		Items []models.Offer `json:"items"`
 	}{len(offers), offers}
 
 	return ctx.JSON(http.StatusOK, result)
 }
-
-
