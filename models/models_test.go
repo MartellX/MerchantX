@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func SetNewMock() (sqlmock.Sqlmock, *models.Repository, error) {
+func SetNewMock() (sqlmock.Sqlmock, *models.PostgresRepository, error) {
 
 	var mock sqlmock.Sqlmock
 
@@ -281,7 +281,7 @@ func TestFindOffersByConditions(t *testing.T) {
 	}
 
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"offers\" WHERE name ILIKE $1")).
-		WithArgs("iPhone").
+		WithArgs("%iPhone%").
 		WillReturnRows(rows)
 
 	args = map[string]interface{}{
@@ -322,7 +322,7 @@ func TestFindOffersByConditions(t *testing.T) {
 	}
 
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"offers\" WHERE offer_id = $1 AND name ILIKE $2")).
-		WithArgs(1, "iPhone").
+		WithArgs(1, "%iPhone%").
 		WillReturnRows(rows)
 
 	args = map[string]interface{}{
@@ -343,7 +343,7 @@ func TestFindOffersByConditions(t *testing.T) {
 	}
 
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"offers\" WHERE seller_id = $1 AND name ILIKE $2")).
-		WithArgs(2, "Guit").
+		WithArgs(2, "%Guit%").
 		WillReturnRows(rows)
 
 	args = map[string]interface{}{
@@ -363,8 +363,8 @@ func TestFindOffersByConditions(t *testing.T) {
 		rows.AddRow(offer.OfferId, offer.SellerId, offer.CreatedAt, offer.UpdatedAt, offer.Name, offer.Price, offer.Quantity, offer.Available)
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"offers\" WHERE offer_id = $1 AND seller_id = $2 AND name ~ $3")).
-		WithArgs(444, 5, "PC").
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"offers\" WHERE offer_id = $1 AND seller_id = $2 AND name ILIKE $3")).
+		WithArgs(444, 5, "%PC%").
 		WillReturnRows(rows)
 
 	args = map[string]interface{}{

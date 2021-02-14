@@ -19,7 +19,7 @@ type Offer struct {
 	Available bool      `json:"available"`
 }
 
-func (r *Repository) NewOffer(offerId uint64, sellerId uint64, name string, price int64, quantity int, available bool) (*Offer, error) {
+func (r *PostgresRepository) NewOffer(offerId uint64, sellerId uint64, name string, price int64, quantity int, available bool) (*Offer, error) {
 	offer := &Offer{OfferId: offerId, SellerId: sellerId, Name: name, Price: price, Quantity: quantity, Available: available}
 	res := r.GetDB().Session(&gorm.Session{Logger: silentLogger}).Create(offer)
 	if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
@@ -28,14 +28,14 @@ func (r *Repository) NewOffer(offerId uint64, sellerId uint64, name string, pric
 	return offer, nil
 }
 
-func (r *Repository) Update(o *Offer) error {
+func (r *PostgresRepository) Update(o *Offer) error {
 	res := r.GetDB().Save(o)
 	if res.Error != nil {
 		return res.Error
 	}
 	return nil
 }
-func (r *Repository) UpdateColumns(o *Offer, name string, price int64, quantity int, available bool) error {
+func (r *PostgresRepository) UpdateColumns(o *Offer, name string, price int64, quantity int, available bool) error {
 	o.Name = name
 	o.Price = price
 	o.Quantity = quantity
@@ -43,7 +43,7 @@ func (r *Repository) UpdateColumns(o *Offer, name string, price int64, quantity 
 	return r.Update(o)
 }
 
-func (r *Repository) Delete(o *Offer) {
+func (r *PostgresRepository) Delete(o *Offer) {
 	r.GetDB().Delete(o)
 }
 
@@ -61,7 +61,7 @@ var silentLogger = logger.New(
 //	Name *string
 //}
 
-func (r *Repository) FindOffersByConditions(args map[string]interface{}) ([]Offer, error) {
+func (r *PostgresRepository) FindOffersByConditions(args map[string]interface{}) ([]Offer, error) {
 
 	tx := r.GetDB().Session(&gorm.Session{Logger: silentLogger})
 	var offers []Offer
@@ -108,7 +108,7 @@ func (r *Repository) FindOffersByConditions(args map[string]interface{}) ([]Offe
 	return offers, nil
 }
 
-func (r *Repository) FindOffer(offerId, sellerId uint64) (*Offer, error) {
+func (r *PostgresRepository) FindOffer(offerId, sellerId uint64) (*Offer, error) {
 
 	tx := r.GetDB().Session(&gorm.Session{Logger: silentLogger})
 	var offer Offer

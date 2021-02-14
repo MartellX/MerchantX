@@ -13,11 +13,11 @@ import (
 )
 
 type Service struct {
-	repo  *models.Repository
+	repo  models.Repository
 	tasks map[string]*Task
 }
 
-func NewService(repo *models.Repository) *Service {
+func NewService(repo models.Repository) *Service {
 	return &Service{repo: repo, tasks: map[string]*Task{}}
 }
 
@@ -67,6 +67,7 @@ func (s *Service) StartUploadingTask(sellerId uint, xlsxURL string) (task *Task,
 		if err != nil {
 			log.Error(err)
 			task.SetStatus(fmt.Sprintf("Error occured: %s", err), http.StatusBadRequest)
+			return
 		}
 
 		defer req.Body.Close()
@@ -107,7 +108,7 @@ func (r *RowData) UpdateColumns(offerId uint64, name string, price int64, quanti
 	r.Columns.Available = available
 }
 
-func ParsingTask(wb *xlsx.File, task *Task, repo *models.Repository) {
+func ParsingTask(wb *xlsx.File, task *Task, repo models.Repository) {
 	sh := wb.Sheets[0]
 
 	rows := sh.Rows
@@ -128,7 +129,7 @@ func parsingRows(parsedRows chan<- RowData, rows []*xlsx.Row) {
 		rowData := RowData{}
 		rowData.ok = true
 		cells := row.Cells
-		if len(cells) == 5 {
+		if len(cells) >= 5 {
 			offerIdStr, err := cells[0].GeneralNumericWithoutScientific()
 			if err != nil {
 				rowData.err = err
@@ -161,7 +162,17 @@ func parsingRows(parsedRows chan<- RowData, rows []*xlsx.Row) {
 				rowData.ok = false
 			}
 
-			available := cells[4].Bool()
+			availableStr, err := cells[4].FormattedValue()
+			if err != nil {
+				rowData.err = err
+				rowData.ok = false
+			}
+
+			available, err := strconv.ParseBool(availableStr)
+			if err != nil {
+				rowData.err = err
+				rowData.ok = false
+			}
 
 			if rowData.ok {
 				rowData.UpdateColumns(offerId, name, price, quantity, available)
@@ -180,7 +191,8 @@ func parsingRows(parsedRows chan<- RowData, rows []*xlsx.Row) {
 
 }
 
-func checkAndUploadRows(parsedRows <-chan RowData, task *Task, repo *models.Repository) {
+func checkAndUploadRows(parsedRows <-chan RowData, task *Task, repo models.Repository) {
+	defer task.SetStatus("Completed", http.StatusOK)
 	sellerId := task.SellerId
 	for parsedRow := range parsedRows {
 		if !parsedRow.ok {
@@ -225,6 +237,5 @@ func checkAndUploadRows(parsedRows <-chan RowData, task *Task, repo *models.Repo
 			}
 		}
 	}
-	task.SetStatus("Completed", http.StatusOK)
 
 }

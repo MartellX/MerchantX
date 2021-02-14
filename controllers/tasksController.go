@@ -12,10 +12,10 @@ import (
 
 type Handler struct {
 	Service *services.Service
-	Repo    *models.Repository
+	Repo    models.Repository
 }
 
-func NewHandler(service *services.Service, repo *models.Repository) *Handler {
+func NewHandler(service *services.Service, repo models.Repository) *Handler {
 	return &Handler{Service: service, Repo: repo}
 }
 

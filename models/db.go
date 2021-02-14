@@ -7,15 +7,15 @@ import (
 	"os"
 )
 
-type Repository struct {
+type PostgresRepository struct {
 	db *gorm.DB
 }
 
-func NewRepository(db *gorm.DB) *Repository {
-	return &Repository{db: db}
+func NewRepository(db *gorm.DB) *PostgresRepository {
+	return &PostgresRepository{db: db}
 }
 
-func NewRepositoryFromEnvironments() *Repository {
+func NewRepositoryFromEnvironments() *PostgresRepository {
 	username := os.Getenv("db_user")
 	password := os.Getenv("db_pass")
 	dbName := os.Getenv("db_name")
@@ -36,13 +36,13 @@ func NewRepositoryFromEnvironments() *Repository {
 	db := conn
 	db.AutoMigrate(&Offer{})
 
-	return &Repository{db: db}
+	return &PostgresRepository{db: db}
 }
 
-func (r *Repository) GetDB() *gorm.DB {
+func (r *PostgresRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
-func (r *Repository) SetDB(gdb *gorm.DB) {
+func (r *PostgresRepository) SetDB(gdb *gorm.DB) {
 	r.db = gdb
 }
