@@ -11,7 +11,10 @@ import (
 
 func main() {
 
-	r := models.NewRepositoryFromEnvironments()
+	r, err := models.NewRepositoryFromEnvironments()
+	if err != nil {
+		panic("Failed to connect to database")
+	}
 	if r == nil {
 		panic("one of env variables not set")
 	}

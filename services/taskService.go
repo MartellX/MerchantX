@@ -188,7 +188,6 @@ func parsingRows(parsedRows chan<- RowData, rows []*xlsx.Row) {
 
 		parsedRows <- rowData
 	}
-
 }
 
 func checkAndUploadRows(parsedRows <-chan RowData, task *Task, repo models.Repository) {

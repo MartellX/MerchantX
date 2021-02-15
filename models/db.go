@@ -15,14 +15,14 @@ func NewRepository(db *gorm.DB) *PostgresRepository {
 	return &PostgresRepository{db: db}
 }
 
-func NewRepositoryFromEnvironments() *PostgresRepository {
-	username := os.Getenv("db_user")
-	password := os.Getenv("db_pass")
-	dbName := os.Getenv("db_name")
+func NewRepositoryFromEnvironments() (*PostgresRepository, error) {
+	username := os.Getenv("POSTGRES_USER")
+	password := os.Getenv("POSTGRES_PASSWORD")
+	dbName := os.Getenv("POSTGRES_DB")
 	dbHost := os.Getenv("db_host")
 
 	if username == "" || password == "" || dbName == "" || dbHost == "" {
-		return nil
+		return nil, nil
 	}
 	dbUri := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s", dbHost, username, dbName, password) //Создать строку подключения
 	//fmt.Println(dbUri)
@@ -30,13 +30,14 @@ func NewRepositoryFromEnvironments() *PostgresRepository {
 	conn, err := gorm.Open(postgres.Open(dbUri), &gorm.Config{})
 	if err != nil {
 		fmt.Print(err)
+		return nil, err
 	}
 
 	fmt.Println("Connected to database")
 	db := conn
 	db.AutoMigrate(&Offer{})
 
-	return &PostgresRepository{db: db}
+	return &PostgresRepository{db: db}, nil
 }
 
 func (r *PostgresRepository) GetDB() *gorm.DB {

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"log"
@@ -103,7 +104,7 @@ func (r *PostgresRepository) FindOffersByConditions(args map[string]interface{})
 	result := condition.Find(&offers)
 
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, errors.New("database exception")
 	}
 	return offers, nil
 }
