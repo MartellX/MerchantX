@@ -25,7 +25,3 @@ services:
       - .env
     ports:
       - ${db_port}:${db_port}
-    environment:
-      POSTGRES_PASSWORD: 123
-      POSTGRES_USER: root
-      POSTGRES_DB: avito-merchantx

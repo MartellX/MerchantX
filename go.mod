@@ -9,7 +9,6 @@ require (
 	github.com/golang/mock v1.4.4 // indirect
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.3.0
-	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.5
 	github.com/tealeg/xlsx v1.0.5
 	gorm.io/driver/postgres v1.0.6

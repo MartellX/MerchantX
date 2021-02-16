@@ -25,8 +25,8 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	e.POST("/task", handler.NewTask)
-	e.GET("/task", handler.GetTask)
+	e.POST("/tasks", handler.NewTask)
+	e.GET("/tasks", handler.GetTask)
 	e.GET("/offers", handler.GetOffers)
 	port, ok := os.LookupEnv("port")
 	if !ok {

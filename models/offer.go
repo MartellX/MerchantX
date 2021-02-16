@@ -11,7 +11,7 @@ import (
 
 type Offer struct {
 	OfferId   uint64    `gorm:"primaryKey;autoIncrement:false" json:"offer_id"`
-	SellerId  uint64    `gorm:"primaryKey;autoIncrement:false" json:"-"`
+	SellerId  uint64    `gorm:"primaryKey;autoIncrement:false" json:"seller_id"`
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
 	Name      string    `json:"name"`
