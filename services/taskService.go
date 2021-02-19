@@ -1,7 +1,7 @@
 package services
 
 import (
-	"MartellX/avito-tech-task/models"
+	"MartellX/avito-tech-task/repository"
 	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/gommon/log"
@@ -13,16 +13,16 @@ import (
 )
 
 type Service struct {
-	repo  models.Repository
+	repo  repository.Repository
 	tasks map[string]*Task
 }
 
-func NewService(repo models.Repository) *Service {
+func NewService(repo repository.Repository) *Service {
 	return &Service{repo: repo, tasks: map[string]*Task{}}
 }
 
 type Task struct {
-	TaskId     string `json:"task_id"`
+	Id         string `json:"task_id"`
 	Status     string `json:"status"`
 	StatusCode int    `json:"status_code"`
 	SellerId   uint   `json:"-"`
@@ -49,7 +49,7 @@ func (s *Service) createTask(sellerId uint) *Task {
 	taskUUID, _ := uuid.DefaultGenerator.NewV4()
 	id := taskUUID.String()
 	task := &Task{
-		TaskId:     id,
+		Id:         id,
 		Status:     "Created",
 		StatusCode: http.StatusCreated,
 		SellerId:   sellerId,
@@ -108,7 +108,7 @@ func (r *RowData) UpdateColumns(offerId uint64, name string, price int64, quanti
 	r.Columns.Available = available
 }
 
-func ParsingTask(wb *xlsx.File, task *Task, repo models.Repository) {
+func ParsingTask(wb *xlsx.File, task *Task, repo repository.Repository) {
 	sh := wb.Sheets[0]
 
 	rows := sh.Rows
@@ -190,7 +190,7 @@ func parsingRows(parsedRows chan<- RowData, rows []*xlsx.Row) {
 	}
 }
 
-func checkAndUploadRows(parsedRows <-chan RowData, task *Task, repo models.Repository) {
+func checkAndUploadRows(parsedRows <-chan RowData, task *Task, repo repository.Repository) {
 	defer task.SetStatus("Completed", http.StatusOK)
 	sellerId := task.SellerId
 	for parsedRow := range parsedRows {

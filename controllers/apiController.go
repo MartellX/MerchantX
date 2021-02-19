@@ -3,6 +3,7 @@ package controllers
 import (
 	"MartellX/avito-tech-task/models"
 	"MartellX/avito-tech-task/other"
+	"MartellX/avito-tech-task/repository"
 	"MartellX/avito-tech-task/services"
 	"fmt"
 	"github.com/labstack/echo"
@@ -12,10 +13,10 @@ import (
 
 type Handler struct {
 	Service *services.Service
-	Repo    models.Repository
+	Repo    repository.Repository
 }
 
-func NewHandler(service *services.Service, repo models.Repository) *Handler {
+func NewHandler(service *services.Service, repo repository.Repository) *Handler {
 	return &Handler{Service: service, Repo: repo}
 }
 
