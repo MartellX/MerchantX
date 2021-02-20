@@ -1,7 +1,7 @@
 package services
 
 import (
-	"MartellX/avito-tech-task/repository"
+	"MartellX/avito-tech-task/repositories"
 	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/labstack/gommon/log"
@@ -12,20 +12,20 @@ import (
 	"strconv"
 )
 
-type Service struct {
-	repo  repository.Repository
+type TaskServiceImpl struct {
+	repo  repositories.Repository
 	tasks map[string]*Task
 }
 
-func NewService(repo repository.Repository) *Service {
-	return &Service{repo: repo, tasks: map[string]*Task{}}
+func NewService(repo repositories.Repository) *TaskServiceImpl {
+	return &TaskServiceImpl{repo: repo, tasks: map[string]*Task{}}
 }
 
 type Task struct {
 	Id         string `json:"task_id"`
 	Status     string `json:"status"`
 	StatusCode int    `json:"status_code"`
-	SellerId   uint   `json:"-"`
+	SellerId   uint64 `json:"-"`
 
 	Info struct {
 		Created int `json:"created,omitempty"`
@@ -40,12 +40,12 @@ func (t *Task) SetStatus(status string, code int) {
 	t.StatusCode = code
 }
 
-func (s *Service) GetTask(id string) (*Task, bool) {
+func (s *TaskServiceImpl) GetTask(id string) (*Task, bool) {
 	task, ok := s.tasks[id]
 	return task, ok
 }
 
-func (s *Service) createTask(sellerId uint) *Task {
+func (s *TaskServiceImpl) createTask(sellerId uint64) *Task {
 	taskUUID, _ := uuid.DefaultGenerator.NewV4()
 	id := taskUUID.String()
 	task := &Task{
@@ -58,7 +58,7 @@ func (s *Service) createTask(sellerId uint) *Task {
 	return task
 }
 
-func (s *Service) StartUploadingTask(sellerId uint, xlsxURL string) (task *Task, err error) {
+func (s *TaskServiceImpl) StartUploadingTask(sellerId uint64, xlsxURL string) (task *Task, err error) {
 
 	task = s.createTask(sellerId)
 
@@ -108,7 +108,7 @@ func (r *RowData) UpdateColumns(offerId uint64, name string, price int64, quanti
 	r.Columns.Available = available
 }
 
-func ParsingTask(wb *xlsx.File, task *Task, repo repository.Repository) {
+func ParsingTask(wb *xlsx.File, task *Task, repo repositories.Repository) {
 	sh := wb.Sheets[0]
 
 	rows := sh.Rows
@@ -190,7 +190,7 @@ func parsingRows(parsedRows chan<- RowData, rows []*xlsx.Row) {
 	}
 }
 
-func checkAndUploadRows(parsedRows <-chan RowData, task *Task, repo repository.Repository) {
+func checkAndUploadRows(parsedRows <-chan RowData, task *Task, repo repositories.Repository) {
 	defer task.SetStatus("Completed", http.StatusOK)
 	sellerId := task.SellerId
 	for parsedRow := range parsedRows {

@@ -2,8 +2,9 @@ package services_test
 
 import (
 	"MartellX/avito-tech-task/models"
-	mocks2 "MartellX/avito-tech-task/repository/mocks"
+	mocks "MartellX/avito-tech-task/repositories/mock_repositories"
 	"MartellX/avito-tech-task/services"
+	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -28,7 +29,7 @@ func startTestdataServer() {
 
 func TestService_StartUploadingTask(t *testing.T) {
 	go startTestdataServer()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 
 	mockCtrl := gomock.NewController(t)
 	g := NewWithT(t)
@@ -36,15 +37,15 @@ func TestService_StartUploadingTask(t *testing.T) {
 	cases := []struct {
 		description string
 		url         string
-		sellerId    uint
-		expect      func(repo *mocks2.MockRepository)
+		sellerId    uint64
+		expect      func(repo *mocks.MockRepository)
 		result      func(task *services.Task)
 	}{
 		{
 			description: "9 created",
 			sellerId:    123,
 			url:         "http://localhost:1234/testdata1",
-			expect: func(repo *mocks2.MockRepository) {
+			expect: func(repo *mocks.MockRepository) {
 				repo.EXPECT().FindOffer(gomock.Any(), gomock.Any()).Return(nil, gorm.ErrRecordNotFound).MaxTimes(9)
 				repo.EXPECT().NewOffer(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 			},
@@ -61,7 +62,7 @@ func TestService_StartUploadingTask(t *testing.T) {
 			description: "9 updated",
 			url:         "http://localhost:1234/testdata1",
 			sellerId:    123,
-			expect: func(repo *mocks2.MockRepository) {
+			expect: func(repo *mocks.MockRepository) {
 				repo.EXPECT().FindOffer(gomock.AssignableToTypeOf(uint64(1)), gomock.AssignableToTypeOf(uint64(1))).Return(&models.Offer{}, nil).MaxTimes(9)
 				repo.EXPECT().UpdateColumns(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).MaxTimes(9)
 			},
@@ -78,7 +79,7 @@ func TestService_StartUploadingTask(t *testing.T) {
 			description: "8 deleted, 1 ignored (was not in DB)",
 			url:         "http://localhost:1234/testdata3",
 			sellerId:    1,
-			expect: func(repo *mocks2.MockRepository) {
+			expect: func(repo *mocks.MockRepository) {
 				gomock.InOrder(
 					repo.EXPECT().FindOffer(uint64(1), gomock.AssignableToTypeOf(uint64(1))).Return(nil, gorm.ErrRecordNotFound),
 					repo.EXPECT().FindOffer(gomock.AssignableToTypeOf(uint64(1)), gomock.AssignableToTypeOf(uint64(1))).Return(&models.Offer{}, nil).MaxTimes(8),
@@ -99,7 +100,7 @@ func TestService_StartUploadingTask(t *testing.T) {
 			description: "6 errors",
 			url:         "http://localhost:1234/testdata2",
 			sellerId:    123,
-			expect: func(repo *mocks2.MockRepository) {
+			expect: func(repo *mocks.MockRepository) {
 
 			},
 			result: func(task *services.Task) {
@@ -115,7 +116,7 @@ func TestService_StartUploadingTask(t *testing.T) {
 			description: "3 created, 3 updated, 3 deleted, 5 errors",
 			url:         "http://localhost:1234/testdata4",
 			sellerId:    123,
-			expect: func(repo *mocks2.MockRepository) {
+			expect: func(repo *mocks.MockRepository) {
 				gomock.InOrder(
 					repo.EXPECT().FindOffer(gomock.AssignableToTypeOf(uint64(1)), gomock.AssignableToTypeOf(uint64(1))).
 						Return(nil, gorm.ErrRecordNotFound).Times(3),
@@ -144,7 +145,7 @@ func TestService_StartUploadingTask(t *testing.T) {
 			description: "Empty table",
 			url:         "http://localhost:1234/emptydata",
 			sellerId:    0,
-			expect: func(repo *mocks2.MockRepository) {
+			expect: func(repo *mocks.MockRepository) {
 
 			},
 			result: func(task *services.Task) {
@@ -159,7 +160,7 @@ func TestService_StartUploadingTask(t *testing.T) {
 			description: "Bad url",
 			url:         "aff",
 			sellerId:    0,
-			expect: func(repo *mocks2.MockRepository) {
+			expect: func(repo *mocks.MockRepository) {
 
 			},
 			result: func(task *services.Task) {
@@ -173,7 +174,7 @@ func TestService_StartUploadingTask(t *testing.T) {
 			description: "Url not accessible",
 			url:         "http://notaccesbleurl.test/",
 			sellerId:    0,
-			expect: func(repo *mocks2.MockRepository) {
+			expect: func(repo *mocks.MockRepository) {
 
 			},
 			result: func(task *services.Task) {
@@ -187,7 +188,7 @@ func TestService_StartUploadingTask(t *testing.T) {
 			description: "Bad endpoint",
 			url:         "http://localhost:1234/bad",
 			sellerId:    0,
-			expect: func(repo *mocks2.MockRepository) {
+			expect: func(repo *mocks.MockRepository) {
 
 			},
 			result: func(task *services.Task) {
@@ -201,7 +202,7 @@ func TestService_StartUploadingTask(t *testing.T) {
 			description: "Bad file",
 			url:         "http://localhost:1234/bad",
 			sellerId:    0,
-			expect: func(repo *mocks2.MockRepository) {
+			expect: func(repo *mocks.MockRepository) {
 
 			},
 			result: func(task *services.Task) {
@@ -214,9 +215,10 @@ func TestService_StartUploadingTask(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		repo := mocks2.NewMockRepository(mockCtrl)
+		repo := mocks.NewMockRepository(mockCtrl)
 		c.expect(repo)
 		service := services.NewService(repo)
+		fmt.Println(c.description)
 		task, err := service.StartUploadingTask(c.sellerId, c.url)
 		g.Expect(err).ShouldNot(HaveOccurred())
 		c.result(task)

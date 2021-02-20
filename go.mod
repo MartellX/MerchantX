@@ -11,6 +11,7 @@ require (
 	github.com/labstack/gommon v0.3.0
 	github.com/onsi/gomega v1.10.5
 	github.com/tealeg/xlsx v1.0.5
+	github.com/tidwall/gjson v1.6.8 // indirect
 	gorm.io/driver/postgres v1.0.6
 	gorm.io/gorm v1.20.11
 )

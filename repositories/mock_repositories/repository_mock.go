@@ -1,4 +1,4 @@
-package mocks
+package mock_repositories
 
 import (
 	models "MartellX/avito-tech-task/models"
@@ -31,7 +31,7 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
-// Delete mocks base method.
+// Delete mock_services base method.
 func (m *MockRepository) Delete(arg0 *models.Offer) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Delete", arg0)
@@ -43,7 +43,7 @@ func (mr *MockRepositoryMockRecorder) Delete(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockRepository)(nil).Delete), arg0)
 }
 
-// FindOffer mocks base method.
+// FindOffer mock_services base method.
 func (m *MockRepository) FindOffer(arg0, arg1 uint64) (*models.Offer, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindOffer", arg0, arg1)
@@ -58,7 +58,7 @@ func (mr *MockRepositoryMockRecorder) FindOffer(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOffer", reflect.TypeOf((*MockRepository)(nil).FindOffer), arg0, arg1)
 }
 
-// FindOffersByConditions mocks base method.
+// FindOffersByConditions mock_services base method.
 func (m *MockRepository) FindOffersByConditions(arg0 map[string]interface{}) ([]models.Offer, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindOffersByConditions", arg0)
@@ -73,7 +73,7 @@ func (mr *MockRepositoryMockRecorder) FindOffersByConditions(arg0 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOffersByConditions", reflect.TypeOf((*MockRepository)(nil).FindOffersByConditions), arg0)
 }
 
-// GetDB mocks base method.
+// GetDB mock_services base method.
 func (m *MockRepository) GetDB() *gorm.DB {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDB")
@@ -87,7 +87,7 @@ func (mr *MockRepositoryMockRecorder) GetDB() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDB", reflect.TypeOf((*MockRepository)(nil).GetDB))
 }
 
-// NewOffer mocks base method.
+// NewOffer mock_services base method.
 func (m *MockRepository) NewOffer(arg0, arg1 uint64, arg2 string, arg3 int64, arg4 int, arg5 bool) (*models.Offer, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewOffer", arg0, arg1, arg2, arg3, arg4, arg5)
@@ -102,7 +102,7 @@ func (mr *MockRepositoryMockRecorder) NewOffer(arg0, arg1, arg2, arg3, arg4, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOffer", reflect.TypeOf((*MockRepository)(nil).NewOffer), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
-// SetDB mocks base method.
+// SetDB mock_services base method.
 func (m *MockRepository) SetDB(arg0 *gorm.DB) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetDB", arg0)
@@ -114,7 +114,7 @@ func (mr *MockRepositoryMockRecorder) SetDB(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDB", reflect.TypeOf((*MockRepository)(nil).SetDB), arg0)
 }
 
-// Update mocks base method.
+// Update mock_services base method.
 func (m *MockRepository) Update(arg0 *models.Offer) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", arg0)
@@ -128,7 +128,7 @@ func (mr *MockRepositoryMockRecorder) Update(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockRepository)(nil).Update), arg0)
 }
 
-// UpdateColumns mocks base method.
+// UpdateColumns mock_services base method.
 func (m *MockRepository) UpdateColumns(arg0 *models.Offer, arg1 string, arg2 int64, arg3 int, arg4 bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateColumns", arg0, arg1, arg2, arg3, arg4)

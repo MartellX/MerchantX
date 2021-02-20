@@ -1,8 +1,8 @@
-package repository_test
+package repositories_test
 
 import (
 	"MartellX/avito-tech-task/models"
-	"MartellX/avito-tech-task/repository"
+	"MartellX/avito-tech-task/repositories"
 	"database/sql"
 	"database/sql/driver"
 	"github.com/DATA-DOG/go-sqlmock"
@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func SetNewMock() (sqlmock.Sqlmock, *repository.PostgresRepository, error) {
+func SetNewMock() (sqlmock.Sqlmock, *repositories.PostgresRepository, error) {
 
 	var mock sqlmock.Sqlmock
 
@@ -32,9 +32,9 @@ func SetNewMock() (sqlmock.Sqlmock, *repository.PostgresRepository, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	repository.NewRepository(gdb)
+	repositories.NewRepository(gdb)
 
-	return mock, repository.NewRepository(gdb), nil
+	return mock, repositories.NewRepository(gdb), nil
 }
 
 func TestNewOffer(t *testing.T) {

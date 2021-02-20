@@ -3,38 +3,49 @@ package controllers
 import (
 	"MartellX/avito-tech-task/models"
 	"MartellX/avito-tech-task/other"
-	"MartellX/avito-tech-task/repository"
+	"MartellX/avito-tech-task/repositories"
 	"MartellX/avito-tech-task/services"
 	"fmt"
 	"github.com/labstack/echo"
+	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
 type Handler struct {
-	Service *services.Service
-	Repo    repository.Repository
+	TaskService services.TaskService
+	Repo        repositories.Repository
 }
 
-func NewHandler(service *services.Service, repo repository.Repository) *Handler {
-	return &Handler{Service: service, Repo: repo}
+func NewHandler(service services.TaskService, repo repositories.Repository) *Handler {
+	return &Handler{TaskService: service, Repo: repo}
 }
 
 func (h *Handler) NewTask(ctx echo.Context) error {
 	sellerId := ctx.FormValue("seller_id")
 	url := ctx.FormValue("url")
+
+	if sellerId == "" {
+		return ctx.JSON(http.StatusBadRequest,
+			other.GetJsonStatusMessage(http.StatusBadRequest, "Не задан параметр seller_id"))
+	}
+	if url == "" {
+		return ctx.JSON(http.StatusBadRequest,
+			other.GetJsonStatusMessage(http.StatusBadRequest, "Не задан параметр url"))
+	}
+
 	id, err := strconv.ParseUint(sellerId, 10, 64)
 
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, other.GetJsonStatusMessage(http.StatusBadRequest, err.Error()))
 	}
 
-	task, err := h.Service.StartUploadingTask(uint(id), url)
+	task, err := h.TaskService.StartUploadingTask(id, url)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, other.GetJsonStatusMessage(http.StatusBadRequest, err.Error()))
 	}
 
-	return ctx.JSON(task.StatusCode, task)
+	return ctx.JSONPretty(task.StatusCode, task, "\t")
 }
 
 func (h *Handler) GetTask(ctx echo.Context) error {
@@ -44,12 +55,12 @@ func (h *Handler) GetTask(ctx echo.Context) error {
 			other.GetJsonStatusMessage(http.StatusBadRequest, "Не задан параметр task_id"))
 	}
 
-	task, ok := h.Service.GetTask(taskId)
+	task, ok := h.TaskService.GetTask(taskId)
 	if !ok {
 		return ctx.JSON(http.StatusNotFound,
 			other.GetJsonStatusMessage(http.StatusNotFound, "Не найдено задание с таким id"))
 	}
-	return ctx.JSON(http.StatusOK, task)
+	return ctx.JSONPretty(http.StatusOK, task, "\t")
 }
 
 func (h *Handler) GetOffers(ctx echo.Context) error {
@@ -88,7 +99,12 @@ func (h *Handler) GetOffers(ctx echo.Context) error {
 
 	offers, err := h.Repo.FindOffersByConditions(args)
 	if err != nil {
-		return ctx.JSON(http.StatusNotFound, other.GetJsonStatusMessage(http.StatusNotFound, err.Error()))
+		if err == gorm.ErrRecordNotFound {
+			return ctx.JSON(http.StatusNotFound, other.GetJsonStatusMessage(http.StatusNotFound, "Ничего не найдено"))
+		} else {
+			return ctx.JSON(http.StatusInternalServerError, "Непредвиденная ошибка")
+		}
+
 	}
 
 	result := struct {
@@ -96,5 +112,5 @@ func (h *Handler) GetOffers(ctx echo.Context) error {
 		Items []models.Offer `json:"items"`
 	}{len(offers), offers}
 
-	return ctx.JSON(http.StatusOK, result)
+	return ctx.JSONPretty(http.StatusOK, result, "\t")
 }

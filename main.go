@@ -2,7 +2,7 @@ package main
 
 import (
 	"MartellX/avito-tech-task/controllers"
-	"MartellX/avito-tech-task/repository"
+	"MartellX/avito-tech-task/repositories"
 	"MartellX/avito-tech-task/services"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	r, err := repository.NewRepositoryFromEnvironments()
+	r, err := repositories.NewRepositoryFromEnvironments()
 	if err != nil {
 		panic("Failed to connect to database")
 	}
