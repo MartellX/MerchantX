@@ -2,13 +2,15 @@ package repositories
 
 import (
 	"MartellX/avito-tech-task/models"
-	"errors"
+	"database/sql"
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 )
 
 type PostgresRepository struct {
@@ -96,47 +98,79 @@ var silentLogger = logger.New(
 
 func (r *PostgresRepository) FindOffersByConditions(args map[string]interface{}) ([]models.Offer, error) {
 
-	tx := r.GetDB().Session(&gorm.Session{Logger: silentLogger})
+	//tx := r.GetDB().Session(&gorm.Session{Logger: silentLogger})
+	db, err := r.GetDB().DB()
+	if err != nil {
+		return nil, err
+	}
 	var offers []models.Offer
-	//conditions := make([]string, 0, 3)
-	//conditionArgs := make([]interface{}, 0, 3)
-	condition := tx.Model(&offers)
+
+	conditions := make([]string, 0, 3)
+	conditionArgs := make([]interface{}, 0, 3)
+
+	//condition := tx.Model(&offers)
 	if offerId, ok := args["offer_id"]; ok {
 
 		// Если неправильного типа, то просто не добавляем в запрос, другое решение - возвращать ошибку
 		switch offerId.(type) {
 		case uint, uint64, uint32:
-			//conditions = append(conditions, "offer_id = ?")
-			//conditionArgs = append(conditionArgs, offerId)
-			condition = condition.Where("offer_id = ?", offerId)
+			conditions = append(conditions, "offer_id = $"+strconv.Itoa(len(conditions)+1))
+			conditionArgs = append(conditionArgs, offerId)
+			//condition = condition.Where("offer_id = ?", offerId)
 		}
 
 	}
 	if sellerId, ok := args["seller_id"]; ok {
 		switch sellerId.(type) {
 		case uint, uint64, uint32:
-			//conditions = append(conditions, "seller_id = ?")
-			//conditionArgs = append(conditionArgs, sellerId)
-			condition = condition.Where("seller_id = ?", sellerId)
+			conditions = append(conditions, "seller_id = $"+strconv.Itoa(len(conditions)+1))
+			conditionArgs = append(conditionArgs, sellerId)
+			//condition = condition.Where("seller_id = ?", sellerId)
 		}
 
 	}
 	if name, ok := args["name"]; ok {
 		switch name.(type) {
 		case string:
-			//conditions = append(conditions, "name ~ ?")
-			//conditionArgs = append(conditionArgs, name)
-			condition = condition.Where("name ILIKE ?", "%"+name.(string)+"%")
+			conditions = append(conditions, "name ILIKE $"+strconv.Itoa(len(conditions)+1))
+			conditionArgs = append(conditionArgs, "%"+name.(string)+"%")
+			//condition = condition.Where("name ILIKE ?", "%"+name.(string)+"%")
 		}
 
 	}
 
-	//result := GetDB().Find(&offers, strings.Join(conditions, "AND"), conditionArgs)
+	var rows *sql.Rows
+	if len(conditions) > 0 {
+		rows, err = db.Query(
+			"SELECT * FROM \"offers\" WHERE "+
+				strings.Join(conditions, " AND "), conditionArgs...)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		rows, err = db.Query(
+			"SELECT * FROM \"offers\"")
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	result := condition.Find(&offers)
+	defer rows.Close()
 
-	if result.Error != nil {
-		return nil, errors.New("database exception")
+	for rows.Next() {
+		var offer models.Offer
+		err := rows.Scan(
+			&offer.OfferId, &offer.SellerId, &offer.CreatedAt, &offer.UpdatedAt,
+			&offer.Name, &offer.Price, &offer.Quantity, &offer.Available)
+		if err != nil {
+			log.Fatal(err)
+		}
+		offers = append(offers, offer)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Fatal(err)
 	}
 	return offers, nil
 }
