@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"MartellX/avito-tech-task/models"
+	"database/sql"
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -138,14 +139,20 @@ func (r *PostgresRepository) FindOffersByConditions(args map[string]interface{})
 
 	}
 
-	rows, err := db.Query(
-		"SELECT * FROM \"offers\" WHERE "+
-			strings.Join(conditions, " AND "), conditionArgs...)
-
-	//result := condition.Find(&offers)
-
-	if err != nil {
-		return nil, err
+	var rows *sql.Rows
+	if len(conditions) > 0 {
+		rows, err = db.Query(
+			"SELECT * FROM \"offers\" WHERE "+
+				strings.Join(conditions, " AND "), conditionArgs...)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		rows, err = db.Query(
+			"SELECT * FROM \"offers\"")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	defer rows.Close()
