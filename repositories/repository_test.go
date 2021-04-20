@@ -242,7 +242,7 @@ func TestFindOffersByConditions(t *testing.T) {
 		rows.AddRow(offer.OfferId, offer.SellerId, offer.CreatedAt, offer.UpdatedAt, offer.Name, offer.Price, offer.Quantity, offer.Available)
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"offers\" WHERE seller_id = $1")).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "offers" WHERE seller_id = $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -301,7 +301,7 @@ func TestFindOffersByConditions(t *testing.T) {
 		rows.AddRow(offer.OfferId, offer.SellerId, offer.CreatedAt, offer.UpdatedAt, offer.Name, offer.Price, offer.Quantity, offer.Available)
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"offers\" WHERE offer_id = $1 AND seller_id = $2")).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "offers" WHERE offer_id = $1 AND seller_id = $2`)).
 		WithArgs(3, 2).
 		WillReturnRows(rows)
 
